@@ -24,4 +24,7 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions")
     suspend fun clearAll()
+
+    @Query("DELETE FROM transactions WHERE isSynced = 1")
+    suspend fun deleteSynced()
 }
