@@ -29,13 +29,13 @@ android {
         buildConfigField(
             "String",
             "SCRIPT_URL",
-            "\"${project.properties["SCRIPT_URL"]}\""
+            "\"${localProperties["SCRIPT_URL"]}\""
         )
 
         buildConfigField(
             "String",
             "SECRET_TOKEN",
-            "\"${project.properties["SECRET_TOKEN"]}\""
+            "\"${localProperties["SECRET_TOKEN"]}\""
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
