@@ -27,6 +27,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                     dao.update(trans.copy(isSynced = true))
                 }
             }
+
+            // 4. Borrar las notificaciones sincronizadas de la base de datos local
+            dao.deleteSynced()
         }
     }
 }
