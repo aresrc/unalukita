@@ -16,13 +16,16 @@ class NotificationReader : NotificationListenerService() {
     private val db by lazy { AppDatabase.getDatabase(applicationContext) }
     private val scope = CoroutineScope(Dispatchers.IO)
 
+    companion object{
+        private val TARGET_PACKAGES = setOf(
+            "pe.com.interbank.mobilebanking",
+            "com.bcp.innovacxion.yapeapp",
+            "com.applemoncash",
+            "com.samsung.knox.securefolder" // <--- EL INTERMEDIARIO
+        )
+    }
     // Agregamos el paquete de Samsung Secure Folder
-    private val TARGET_PACKAGES = setOf(
-        "pe.com.interbank.mobilebanking",
-        "com.bcp.innovacxion.yapeapp",
-        "com.applemoncash",
-        "com.samsung.knox.securefolder" // <--- EL INTERMEDIARIO
-    )
+
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         val packageName = sbn?.packageName ?: return
@@ -38,24 +41,18 @@ class NotificationReader : NotificationListenerService() {
         val fullContent = "$title $text"
         Log.d("FINANZAS_DEBUG", "App: $packageName | Content: $fullContent")
 
-        // Lógica de detección inteligente
-        if (packageName == "com.samsung.knox.securefolder") {
-            // Si viene de la carpeta segura, buscamos el nombre del banco en el texto
-            if (fullContent.contains("Yape", ignoreCase = true)) {
-                processYape(fullContent)
-            } else if (fullContent.contains("Interbank", ignoreCase = true)) {
-                processInterbank(fullContent)
-            } else if (fullContent.contains("Lemon", ignoreCase = true)) {
-                processLemon(fullContent)
-            }
-        } else {
-            // Si viene directo (por si sacas alguna app de la carpeta segura)
+        val isTransfer = fullContent.contains("te envió") ||
+                fullContent.contains("recibiste", true) ||
+                fullContent.contains("pago recibido")
+
+        if (isTransfer) {
             when (packageName) {
                 "com.bcp.innovacxion.yapeapp" -> processYape(fullContent)
                 "pe.com.interbank.mobilebanking" -> processInterbank(fullContent)
                 "com.applemoncash" -> processLemon(fullContent)
             }
         }
+
     }
 
     private fun processYape(text: String) {
@@ -75,7 +72,12 @@ class NotificationReader : NotificationListenerService() {
     }
 
     private fun processLemon(text: String) {
-        saveToDb("Lemon (Secure)", 0.0, text)
+        val matcher = Pattern.compile("(S/|USD)\\s*(\\d+(\\.\\d{1,2})?)").matcher(text)
+
+        if (matcher.find()) {
+            val monto = matcher.group(2)?.toDoubleOrNull() ?: 0.0
+            saveToDb("Interbank (Secure)", monto, text)
+        }
     }
 
     private fun saveToDb(banco: String, monto: Double, desc: String) {
